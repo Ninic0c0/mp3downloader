@@ -1,0 +1,17 @@
+===============================================================================================================
+                                version info mp3downloader software
+===============================================================================================================
+Date:       Release:    Changes:
+---------------------------------------------------------------------------------------------------------------
+03.05.2017  Beta(1.00)
+                        NEW FEATURES:
+                         - Download all mp3 from Youtube Playlist.
+						 - Download mp3 direct from string.
+						 - Download mp3 from file (string).
+						 - Download mp3 from file (youtube URL).
+
+                        UPDATES:
+                         - None.
+
+                        BUGS FIXED:
+                         - None.
