@@ -3,6 +3,8 @@
 #11 characters (Length of Youtube video ids).
 #YOUTUBELENGTHID=11
 
+VERSION="1.0.0(BETA)"
+
 # add some color to message
 readonly ERR="\033[31m[ERROR]\e[0m"
 readonly WARN="\033[33m[WARN]\e[0m"
@@ -169,6 +171,8 @@ function track_playlist_direct { # download mp3 from string
 #**********************************************************
 #********************** Entry point ***********************
 #**********************************************************
+clear;
+echo -e "*** Welecome to mp3downloader $VERSION ***\n"
 
 # Extract args
 while getopts "s:p:u:h" opt; do
@@ -220,6 +224,7 @@ while getopts "s:p:u:h" opt; do
 		echo -e "\t -s : source name [ youtube | tracklist ]"
 		echo -e "\t -p : source path [ path to playlist ]"
 		echo -e "\t -u : url to youtube playlist"
+		echo -e "\nYou can find few examples in the README.md"
 		exit 0
 		;;
 
