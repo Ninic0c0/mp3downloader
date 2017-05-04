@@ -1,6 +1,6 @@
 #!/bin/bash
 
-VERSION="1.0.0(BETA)"
+VERSION="1.2.0(BETA)"
 
 # add some color to message
 readonly ERR="\033[31m[ERROR]\e[0m"
@@ -10,11 +10,12 @@ readonly INFO="\033[32m[INFO]\e[0m"
 ############################################################
 ##################### Install Java JRE 8 ###################
 ############################################################
-function easytag_install {
+function java_down_and_install {
 
-    sudo add-apt-repository ppa:amigadave/ppa && \
+    sudo add-apt-repository ppa:webupd8team/java -y && \
     sudo apt-get update && \
-    sudo apt-get install easytag
+    sudo apt-get install oracle-java8-installer && \
+    sudo apt-get install oracle-java8-set-default
 }
 
 ############################################################
@@ -30,8 +31,11 @@ function filebot_download_portable {
     wget -O "$destdir/$filebottarball" \
     "https://kent.dl.sourceforge.net/project/filebot/filebot/FileBot_4.7.9/FileBot_4.7.9-portable.tar.xz"
 
-    echo -e "INFO Untar..."
+    echo -e "$INFO Untar..."
     tar -xf "$filebottarball" -C ./filebot
+
+    echo -e "$INFO Installing libchromaprint-tools"
+    sudo apt install libchromaprint-tools
 }
 
 ############################################################
@@ -60,6 +64,22 @@ function depchecker {
                 echo -e "$INFO $element is already installed on the system"
             fi
         done
+}
+
+
+function filebot_rename_tracks {
+
+	local renamedir="$1"
+
+	local filebotscript="./filebot/filebot.sh"
+
+	if [ ! -f "$filebotscript" ]; then
+    	echo -e "$ERR Filebot Script not found!"
+    	echo -e "$ERR Please launch ./mp3downloader.sh -i filebot"
+	fi
+
+	./filebot/filebot.sh -rename "$renamedir" --db AcoustID
+
 }
 
 ############################################################
@@ -204,7 +224,7 @@ echo -e "*** Welecome to mp3downloader $VERSION ***\n"
 depchecker
 
 # Extract args
-while getopts "s:p:u:i:h" opt; do
+while getopts "s:p:u:i:r:h" opt; do
   case $opt in
     s)
         SOURCENAME=$OPTARG
@@ -248,8 +268,8 @@ while getopts "s:p:u:i:h" opt; do
     i)
         ASKINSTALL=$OPTARG
         case "$ASKINSTALL" in
-        "easytag" ) # youtube playlist aka all youtube urls in one file
-            easytag_install
+        "java" ) # youtube playlist aka all youtube urls in one file
+            java_down_and_install
         ;;
         "filebot" ) # youtube playlist aka playlist URL
             filebot_download_portable
@@ -260,6 +280,10 @@ while getopts "s:p:u:i:h" opt; do
         ;;
         esac
         ;;
+    r)
+		FOLDERTORENAME=$OPTARG
+		filebot_rename_tracks "$FOLDERTORENAME"
+		;;
     h)
         echo "This program dump mp3 from youtube playlist or tracklist."
         echo -e "\t -s : source name [ youtube | tracklist | direct ]"
