@@ -31,7 +31,6 @@ function youtube_download_audio {
 			   --audio-format mp3 \
 			   --output "$destdir/%(title)s.%(ext)s" "$dlpath"
 			   --ignore-errors
-
 }
 
 ############################################################
@@ -42,13 +41,11 @@ function youtube_download_from_file {
 	local filetoparse="$1"
 	local destdir="$2"
 
-	# replcae all spaces with -
+	# not space allow in the directory name
 	destdir=$(echo "$destdir" | sed -e 's/\ /-/g')
 
-	local nbrlines=$(grep -cve '^\s*$' "$filetoparse") # count how many lines are not empty in file
-
-	echo -e "[FUNC] filetoparse -> $filetoparse "
-	echo -e "[FUNC] destdir -> $destdir "
+	# count how many lines are not empty in file
+	local nbrlines=$(grep -cve '^\s*$' "$filetoparse")
 
 	mkdir -p "$destdir"
 
@@ -56,19 +53,17 @@ function youtube_download_from_file {
 	while read line
 	do
 		if [ "$line" != "" ]; then
+
 			count=$((count+1))
-			echo "****************************************" #>> "$MYLOGFILE"
-			echo -e "Downloading trak [ $count / $nbrlines]" #| tee >> "$MYLOGFILE"
-			#echo "$line" >> "$MYLOGFILE"
+
+			echo "****************************************"
+			echo -e "Downloading trak [ $count / $nbrlines]"
 
 			youtube_download_audio "$PWD/$destdir" "$line"
-
-			echo "[STATUS DL] --> $?"
 
 		else
 			echo -e "$WARN empty line founded in the source file please take care the next time."
 		fi
-
 	done < "$filetoparse"
 
 }
@@ -123,15 +118,11 @@ function track_playlist_download {
 	while read line
 	do
 	   count=$((count+1))
-	   echo "****************************************" >> "$MYLOGFILE"
-	   echo -e "Downloading trak [ $count / $NUMOFLINES]" | tee >> "$MYLOGFILE"
-	   echo "$line" >> "$MYLOGFILE"
+	   echo "****************************************"
+	   echo -e "Downloading trak [ $count / $NUMOFLINES]"
 	   track_playlist_direct "$line"
 	done < $FILESOURCEPATH
-
-	echo >> "$MYLOGFILE"
 }
-
 
 ###########################################################
 ############### Download mp3 from string ##################
@@ -140,33 +131,23 @@ function track_playlist_direct { # download mp3 from string
 
 	# Get video title
 	TITLE=$(echo "$@"|sed -e 's/\ /+/g')
-	#echo -e "$WARN TITLE is: $TITLE"
+
+	# Check if stdin is not enmpty
 	if [ -z "$TITLE" ]; then echo -e "nothing to look for"; exit 1; fi
 
-	# get Youtube URL (thx to Guillaume :P )
-	URLTODONWLOAD=$(lynx -dump https://www.youtube.com/results?search_query="$TITLE"|grep "watch?" |head -n1 |awk '{print $2}')
+	# Get Youtube URL (thx to Guillaume :P )
+	URLTODONWLOAD=$(lynx -dump \
+					https://www.youtube.com/results?search_query="$TITLE" | \
+					grep "watch?" | \
+					head -n1      | \
+					awk '{print $2}'\
+					)
 
-	# sometime with have [num.] at the beginning of the URL ... i don't know why
+	# Sometime with have [num.] at the beginning of the URL...
 	URLTODONWLOAD=$(echo $URLTODONWLOAD | sed 's/\[.[1234567890]]*//g')
-
-	# get the video ID and size
-	# VIDEOID=$(echo $URLTODONWLOAD | sed 's/.*watch?v=//')
-	# VIDEOIDSIZE=${#VIDEOID}
-
-	# check ID lenght
-	#if [ "$YOUTUBELENGTHID" = "$VIDEOIDSIZE" ];
-	#   then
-	#	echo "Size seems good"
-	#else
-	#	echo "Size doesn't match with Youtub URL Length!"
-	#fi
-
-	# download the video and ask the sound extraction (video will be remove automatically)
-	#echo "Downloading from $URLTODONWLOAD with ID: $VIDEOID - $VIDEOIDSIZE "
 
 	youtube_download_audio "$PWD/$DOWNPATH_DIR" "$URLTODONWLOAD"
 }
-
 
 #**********************************************************
 #********************** Entry point ***********************
@@ -194,10 +175,7 @@ while getopts "s:p:u:h" opt; do
 			echo -e "$INFO direct download selected!"
 			DOWNPATH_DIR="./direct"
 			echo -e "Output directory will be: $DOWNPATH_DIR"
-			#DOWNPATH_DIR=$(echo "${@:3}" | sed -e 's/\ /-/g')
-			#MYLOGFILE=direct.log
 			track_playlist_direct "${@:3}" # pass arg from the 3rd (e.g without -s direct)
-			#rm direct.log
 			exit 0
         ;;
         *)
@@ -221,7 +199,7 @@ while getopts "s:p:u:h" opt; do
 		;;
 	h)
 		echo "This program dump mp3 from youtube playlist or tracklist."
-		echo -e "\t -s : source name [ youtube | tracklist ]"
+		echo -e "\t -s : source name [ youtube | tracklist | direct ]"
 		echo -e "\t -p : source path [ path to playlist ]"
 		echo -e "\t -u : url to youtube playlist"
 		echo -e "\nYou can find few examples in the README.md"
