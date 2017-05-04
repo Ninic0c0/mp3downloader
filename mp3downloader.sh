@@ -1,8 +1,5 @@
 #!/bin/bash
 
-#11 characters (Length of Youtube video ids).
-#YOUTUBELENGTHID=11
-
 VERSION="1.0.0(BETA)"
 
 # add some color to message
@@ -11,12 +8,58 @@ readonly WARN="\033[33m[WARN]\e[0m"
 readonly INFO="\033[32m[INFO]\e[0m"
 
 ############################################################
-# create output directory for playlist and log file inside #
+##################### Install Java JRE 8 ###################
 ############################################################
-function create_output_dir {
+function easytag_install {
 
-	mkdir -p "$DOWNPATH_DIR"
-	touch "$MYLOGFILE"
+    sudo add-apt-repository ppa:amigadave/ppa && \
+    sudo apt-get update && \
+    sudo apt-get install easytag
+}
+
+############################################################
+############## Download filebot 4.7.9 Portable #############
+############################################################
+function filebot_download_portable {
+
+    local destdir="${PWD}"
+    local filebottarball="Filebot.tar.xz"
+
+    echo -e "$INFO Downloading filebot..."
+
+    wget -O "$destdir/$filebottarball" \
+    "https://kent.dl.sourceforge.net/project/filebot/filebot/FileBot_4.7.9/FileBot_4.7.9-portable.tar.xz"
+
+    echo -e "INFO Untar..."
+    tar -xf "$filebottarball" -C ./filebot
+}
+
+############################################################
+######## Check dependencies in ask for installation ########
+############################################################
+function depchecker {
+
+    local deplist="youtube-dl"
+
+    for element in $deplist
+        do
+
+            echo "$element is required by mp3downloader. Searching..."
+
+            if ! whereis $element > /dev/null; then
+                # Really make sure they're serious
+                read -p "Do you want to install $element? " -n 1 -r
+                echo    # (optional) move to a new line
+                if [[ $REPLY =~ ^[Yy]$ ]]
+                then
+                    sudo apt install $element
+                else
+                    echo "Skipping $element installation!"
+                fi
+            else
+                echo -e "$INFO $element is already installed on the system"
+            fi
+        done
 }
 
 ############################################################
@@ -24,13 +67,13 @@ function create_output_dir {
 ############################################################
 function youtube_download_audio {
 
-	local destdir="$1"
-	local dlpath="$2"
+    local destdir="$1"
+    local dlpath="$2"
 
-	youtube-dl --extract-audio \
-			   --audio-format mp3 \
-			   --output "$destdir/%(title)s.%(ext)s" "$dlpath"
-			   --ignore-errors
+    youtube-dl --extract-audio \
+               --audio-format mp3 \
+               --output "$destdir/%(title)s.%(ext)s" "$dlpath" \
+               --ignore-errors
 }
 
 ############################################################
@@ -38,34 +81,33 @@ function youtube_download_audio {
 ############################################################
 function youtube_download_from_file {
 
-	local filetoparse="$1"
-	local destdir="$2"
+    local filetoparse="$1"
+    local destdir="$2"
 
-	# not space allow in the directory name
-	destdir=$(echo "$destdir" | sed -e 's/\ /-/g')
+    # not space allow in the directory name
+    destdir=$(echo "$destdir" | sed -e 's/\ /-/g')
 
-	# count how many lines are not empty in file
-	local nbrlines=$(grep -cve '^\s*$' "$filetoparse")
+    # count how many lines are not empty in file
+    local nbrlines=$(grep -cve '^\s*$' "$filetoparse")
 
-	mkdir -p "$destdir"
+    mkdir -p "$destdir"
 
-	# read playlist file line by line
-	while read line
-	do
-		if [ "$line" != "" ]; then
+    # read playlist file line by line
+    while read line
+    do
+        if [ "$line" != "" ]; then
 
-			count=$((count+1))
+            count=$((count+1))
 
-			echo "****************************************"
-			echo -e "Downloading trak [ $count / $nbrlines]"
+            echo "****************************************"
+            echo -e "Downloading trak [ $count / $nbrlines]"
 
-			youtube_download_audio "$PWD/$destdir" "$line"
+            youtube_download_audio "$PWD/$destdir" "$line"
 
-		else
-			echo -e "$WARN empty line founded in the source file please take care the next time."
-		fi
-	done < "$filetoparse"
-
+        else
+            echo -e "$WARN empty line founded in the source file please take care the next time."
+        fi
+    done < "$filetoparse"
 }
 
 ############################################################
@@ -73,35 +115,35 @@ function youtube_download_from_file {
 ############################################################
 function youtube_playlist_download {
 
-	DOWNPATH_DIR=$(lynx -dump "$YOUTUBEURL" | grep "Play all*$" -A 2 | tail -n 1)
+    DOWNPATH_DIR=$(lynx -dump "$YOUTUBEURL" | grep "Play all*$" -A 2 | tail -n 1)
 
-	YOUTUBEPLAYLIST=$(lynx -dump "$YOUTUBEURL" | \
-				  	sed -n '/Hidden links/,$p' | \
-				  	tail -n +4                 | \
-				  	head -n -1                 | \
-				  	sed 's/[[:digit:]]\+\.//g' | \
-				  	sed 's/\&index.*//'        | \
-				  	sed 's/\&list.*//'           \
-				  	)
+    YOUTUBEPLAYLIST=$(lynx -dump "$YOUTUBEURL" | \
+                      sed -n '/Hidden links/,$p' | \
+                      tail -n +4                 | \
+                      head -n -1                 | \
+                      sed 's/[[:digit:]]\+\.//g' | \
+                      sed 's/\&index.*//'        | \
+                      sed 's/\&list.*//'           \
+                      )
 
-	NBRTRACK=$(echo "$YOUTUBEPLAYLIST" | wc -l )
+    local nbrtrack=$(echo "$YOUTUBEPLAYLIST" | wc -l )
 
-	echo -e "$INFO Playlist name : $DOWNPATH_DIR"
-	echo "Nbr track : $NBRTRACK"
+    echo -e "$INFO Playlist name : $DOWNPATH_DIR"
+    echo "Nbr track : $nbrtrack"
 
-	TMPPLAYLISTFILE="$DOWNPATH_DIR"".tmp"
-	# replcae all spaces with -
-	TMPPLAYLISTFILE=$(echo "$TMPPLAYLISTFILE" | sed -e 's/\ /-/g')
-	echo -e "$WARN tmp: $TMPPLAYLISTFILE"
+    local tmpfile="$DOWNPATH_DIR"".tmp"
 
-	touch $TMPPLAYLISTFILE
-	echo "$YOUTUBEPLAYLIST" >> "$TMPPLAYLISTFILE"
+    # replcae all spaces with -
+    tmpfile=$(echo "$tmpfile" | sed -e 's/\ /-/g')
+    echo -e "$WARN tmp: $tmpfile"
 
-	youtube_download_from_file "$TMPPLAYLISTFILE" "$DOWNPATH_DIR"
+    touch "$tmpfile"
+    echo "$YOUTUBEPLAYLIST" >> "$tmpfile"
 
-	# clean tmp file
-	rm "$TMPPLAYLISTFILE"
+    youtube_download_from_file "$tmpfile" "$DOWNPATH_DIR"
 
+    # clean tmp file
+    rm "$tmpfile"
 }
 
 ###########################################################
@@ -109,19 +151,23 @@ function youtube_playlist_download {
 ###########################################################
 function track_playlist_download {
 
-	create_output_dir
+    local inputfile="$1"
 
-	NUMOFLINES=$(wc -l < "$FILESOURCEPATH")
-	echo -e "$INFO $NUMOFLINES tracks will be downloaded!"
+    # create outuput directory
+    mkdir -p "$DOWNPATH_DIR"
 
-	# read playlist file line by line
-	while read line
-	do
-	   count=$((count+1))
-	   echo "****************************************"
-	   echo -e "Downloading trak [ $count / $NUMOFLINES]"
-	   track_playlist_direct "$line"
-	done < $FILESOURCEPATH
+    # how many tracks
+    local numoflines=$(wc -l < "$inputfile")
+    echo -e "$INFO $numoflines tracks will be downloaded!"
+
+    # read playlist file line by line
+    while read line
+    do
+       count=$((count+1))
+       echo "****************************************"
+       echo -e "Downloading trak [ $count / $numoflines]"
+       track_playlist_direct "$line"
+    done < $FILESOURCEPATH
 }
 
 ###########################################################
@@ -129,24 +175,24 @@ function track_playlist_download {
 ###########################################################
 function track_playlist_direct { # download mp3 from string
 
-	# Get video title
-	TITLE=$(echo "$@"|sed -e 's/\ /+/g')
+    # Get video title
+    local title=$(echo "$@"|sed -e 's/\ /+/g')
 
-	# Check if stdin is not enmpty
-	if [ -z "$TITLE" ]; then echo -e "nothing to look for"; exit 1; fi
+    # Check if stdin is not enmpty
+    if [ -z "$title" ]; then echo -e "nothing to look for"; exit 1; fi
 
-	# Get Youtube URL (thx to Guillaume :P )
-	URLTODONWLOAD=$(lynx -dump \
-					https://www.youtube.com/results?search_query="$TITLE" | \
-					grep "watch?" | \
-					head -n1      | \
-					awk '{print $2}'\
-					)
+    # Get Youtube URL (thx to Guillaume :P )
+    local urltodonwload=$(lynx -dump \
+                    https://www.youtube.com/results?search_query="$title" | \
+                    grep "watch?" | \
+                    head -n1      | \
+                    awk '{print $2}' \
+                    )
 
-	# Sometime with have [num.] at the beginning of the URL...
-	URLTODONWLOAD=$(echo $URLTODONWLOAD | sed 's/\[.[1234567890]]*//g')
+    # Sometime with have [num.] at the beginning of the URL...
+    urltodonwload=$(echo $urltodonwload | sed 's/\[.[1234567890]]*//g')
 
-	youtube_download_audio "$PWD/$DOWNPATH_DIR" "$URLTODONWLOAD"
+    youtube_download_audio "$PWD/$DOWNPATH_DIR" "$urltodonwload"
 }
 
 #**********************************************************
@@ -155,62 +201,79 @@ function track_playlist_direct { # download mp3 from string
 clear;
 echo -e "*** Welecome to mp3downloader $VERSION ***\n"
 
+depchecker
+
 # Extract args
-while getopts "s:p:u:h" opt; do
+while getopts "s:p:u:i:h" opt; do
   case $opt in
     s)
-		SOURCENAME=$OPTARG
+        SOURCENAME=$OPTARG
 
-		case "$SOURCENAME" in
-    	"youtube" ) # youtube playlist aka all youtube urls in one file
-        	echo -e "$INFO youtube selected!"
+        case "$SOURCENAME" in
+        "youtube" ) # youtube playlist aka all youtube urls in one file
+            echo -e "$INFO youtube selected!"
         ;;
         "playlist" ) # youtube playlist aka playlist URL
-			echo -e "$INFO youtube playlist selected!"
-		;;
+            echo -e "$INFO youtube playlist selected!"
+        ;;
         "tracklist" ) # track list aka track name in file
-			echo -e "$INFO tracklist selected!"
-		;;
-		"direct" ) # direct download from arg string
-			echo -e "$INFO direct download selected!"
-			DOWNPATH_DIR="./direct"
-			echo -e "Output directory will be: $DOWNPATH_DIR"
-			track_playlist_direct "${@:3}" # pass arg from the 3rd (e.g without -s direct)
-			exit 0
+            echo -e "$INFO tracklist selected!"
+        ;;
+        "direct" ) # direct download from arg string
+            echo -e "$INFO direct download selected!"
+            DOWNPATH_DIR="./direct"
+            echo -e "Output directory will be: $DOWNPATH_DIR"
+            track_playlist_direct "${@:3}" # pass arg from the 3rd (e.g without -s direct)
+            exit 0
         ;;
         *)
-			echo -e "$ERR Source didn't matched!"
-			exit 2
-		;;
-		esac
-		;;
-
-	p)
-		FILESOURCEPATH=$OPTARG
-		echo -e "$INFO Loading tracks from: $FILESOURCEPATH"
-		DOWNPATH_DIR=$(basename "$FILESOURCEPATH")
-		DOWNPATH_DIR="${DOWNPATH_DIR%.*}"
-		echo -e "$INFO Download directory will be: $DOWNPATH_DIR"
-		MYLOGFILE=$DOWNPATH_DIR/playlist.log
-		;;
-	u)
-		YOUTUBEURL=$OPTARG
-		echo -e "$INFO Loading tracks from: $YOUTUBEURL"
-		;;
-	h)
-		echo "This program dump mp3 from youtube playlist or tracklist."
-		echo -e "\t -s : source name [ youtube | tracklist | direct ]"
-		echo -e "\t -p : source path [ path to playlist ]"
-		echo -e "\t -u : url to youtube playlist"
-		echo -e "\nYou can find few examples in the README.md"
-		exit 0
-		;;
-
+            echo -e "$ERR Source didn't matched!"
+            exit 2
+        ;;
+        esac
+        ;;
+    p)
+        FILESOURCEPATH=$OPTARG
+        echo -e "$INFO Loading tracks from: $FILESOURCEPATH"
+        # Get file name
+        DOWNPATH_DIR=$(basename "$FILESOURCEPATH")
+        # Remove extention to create a folder with the same name
+        DOWNPATH_DIR="${DOWNPATH_DIR%.*}"
+        echo -e "$INFO Download directory will be: $DOWNPATH_DIR"
+        ;;
+    u)
+        YOUTUBEURL=$OPTARG
+        echo -e "$INFO Loading tracks from: $YOUTUBEURL"
+        ;;
+    i)
+        ASKINSTALL=$OPTARG
+        case "$ASKINSTALL" in
+        "easytag" ) # youtube playlist aka all youtube urls in one file
+            easytag_install
+        ;;
+        "filebot" ) # youtube playlist aka playlist URL
+            filebot_download_portable
+        ;;
+        *)
+            echo -e "$ERR Package didn't matched!"
+            exit 2
+        ;;
+        esac
+        ;;
+    h)
+        echo "This program dump mp3 from youtube playlist or tracklist."
+        echo -e "\t -s : source name [ youtube | tracklist | direct ]"
+        echo -e "\t -p : source path [ path to playlist ]"
+        echo -e "\t -u : url to youtube playlist"
+        echo
+        echo -e "\t -i : install tools [ java | filebot ]"
+        echo -e "\nYou can find few examples in the README.md"
+        exit 0
+        ;;
     \?)
       echo -e "$ERR Invalid option: -$OPTARG"
       exit 1
       ;;
-
     :)
       echo -e "$ERR Option -$OPTARG requires an argument."
       exit 1
@@ -222,22 +285,22 @@ done
 # Processing
 case "$SOURCENAME" in
 
-	"youtube")
-		echo -e "$INFO Downloading from Youtube..."
-		youtube_download_from_file "$FILESOURCEPATH" "$DOWNPATH_DIR"
-		;;
-	"playlist")
-		echo -e "$INFO Downloading from Youtube playlist URL..."
-		youtube_playlist_download
-		;;
-	"tracklist")
-		echo -e "$INFO Downloading from Tracklist..."
-		track_playlist_download
-		;;
-	*)
-		echo "Commande will be not processed"
-		exit 2
-		;;
+    "youtube")
+        echo -e "$INFO Downloading from Youtube..."
+        youtube_download_from_file "$FILESOURCEPATH" "$DOWNPATH_DIR"
+    ;;
+    "playlist")
+        echo -e "$INFO Downloading from Youtube playlist URL..."
+        youtube_playlist_download
+    ;;
+    "tracklist")
+        echo -e "$INFO Downloading from Tracklist..."
+        track_playlist_download "$FILESOURCEPATH"
+    ;;
+    *)
+        echo "Commande will be not processed"
+        exit 2
+    ;;
 esac
 
-exit 1
+exit 0
