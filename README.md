@@ -32,4 +32,8 @@
 ./mp3downloader.sh -s youtube -p playlistYoutube.txt
 ```
 
+### Rename Tracks with AcoustID database
 
+```sh
+./mp3downloader.sh -r ./playlistYoutube
+```

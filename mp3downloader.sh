@@ -291,6 +291,7 @@ while getopts "s:p:u:i:r:h" opt; do
         echo -e "\t -u : url to youtube playlist"
         echo
         echo -e "\t -i : install tools [ java | filebot ]"
+        echo -e "\t -r rename files with AcoustID database"
         echo -e "\nYou can find few examples in the README.md"
         exit 0
         ;;
