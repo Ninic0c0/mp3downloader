@@ -91,6 +91,24 @@ function depchecker {
 }
 
 ############################################################
+############# Ask if renaming is needed or not #############
+############################################################
+function ask_for_renaming {
+
+    local folder="$1"
+
+    read -p "Do you want to rename $folder? " -n 1 -r
+    echo    # (optional) move to a new line
+    if [[ $REPLY =~ ^[Yy]$ ]]
+    then
+        filebot_rename_tracks "$folder"
+    fi
+
+
+}
+
+
+############################################################
 ######### Rename tracks  #########
 ###########################################################
 function filebot_rename_tracks {
@@ -102,8 +120,10 @@ function filebot_rename_tracks {
     if [ ! -f "$filebotscript" ]; then
         echo -e "$ERR Filebot Script not found!"
         echo -e "$ERR Please launch ./mp3downloader.sh -i filebot"
+        exit 4
     fi
 
+    echo -e "$INFO renaming tracks in folder: $renamedir"
     ./filebot/filebot.sh -rename "$renamedir" --db AcoustID
 
 }
@@ -187,11 +207,12 @@ function youtube_playlist_download {
                 echo "Empy entry! Well done! Playlist will be Unknown_PLaylist"
                 DOWNPATH_DIR="$default_playlist_name"
             else
-                DOWNPATH_DIR=$(echo "$DOWNPATH_DIR" | sed -e 's/\ /-/g')
                 echo -e "$INFO Playlist name will be : $DOWNPATH_DIR"
             fi
         fi
     fi
+
+    DOWNPATH_DIR=$(echo "$DOWNPATH_DIR" | sed -e 's/\ /-/g')
 
     YOUTUBEPLAYLIST=$(lynx -dump "$YOUTUBEURL" | \
                       sed -n '/Hidden links/,$p' | \
@@ -216,7 +237,7 @@ function youtube_playlist_download {
     touch "$tmpfile"
     echo "$YOUTUBEPLAYLIST" >> "$tmpfile"
 
-    youtube_download_from_file "$tmpfile" "$DOWNPATH_DIR"
+    #youtube_download_from_file "$tmpfile" "$DOWNPATH_DIR"
 
     # Clean tmp file
     rm "$tmpfile"
@@ -373,6 +394,7 @@ case "$SOURCENAME" in
     "playlist")
         echo -e "$INFO Downloading from Youtube playlist URL..."
         youtube_playlist_download
+        ask_for_renaming "$DOWNPATH_DIR"
     ;;
     "tracklist")
         echo -e "$INFO Downloading from Tracklist..."
