@@ -97,16 +97,13 @@ function ask_for_renaming {
 
     local folder="$1"
 
-    read -p "Do you want to rename $folder? " -n 1 -r
+    read -p "Do you want to rename tracks inside $folder? " -n 1 -r
     echo    # (optional) move to a new line
     if [[ $REPLY =~ ^[Yy]$ ]]
     then
         filebot_rename_tracks "$folder"
     fi
-
-
 }
-
 
 ############################################################
 ######### Rename tracks  #########
@@ -226,13 +223,13 @@ function youtube_playlist_download {
     local nbrtrack=$(echo "$YOUTUBEPLAYLIST" | wc -l )
 
     echo -e "$INFO Playlist name : $DOWNPATH_DIR"
-    echo "Nbr track : $nbrtrack"
+    echo "$nbrtrack track(s) will be downloaded"
 
     local tmpfile="$DOWNPATH_DIR"".tmp"
 
     # Replcae all spaces with -
     tmpfile=$(echo "$tmpfile" | sed -e 's/\ /-/g')
-    echo -e "$WARN tmp: $tmpfile"
+    #echo -e "$WARN tmp: $tmpfile"
 
     touch "$tmpfile"
     echo "$YOUTUBEPLAYLIST" >> "$tmpfile"
