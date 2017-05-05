@@ -25,11 +25,12 @@ function filebot_download_portable {
 
     local destdir="${PWD}"
     local filebottarball="Filebot.tar.xz"
+    local filebotversion="4.7.9"
 
     echo -e "$INFO Downloading filebot..."
 
     wget -O "$destdir/$filebottarball" \
-    "https://kent.dl.sourceforge.net/project/filebot/filebot/FileBot_4.7.9/FileBot_4.7.9-portable.tar.xz"
+    "https://kent.dl.sourceforge.net/project/filebot/filebot/FileBot_$filebotversion/FileBot_$filebotversion-portable.tar.xz"
 
     echo -e "$INFO Untar..."
     tar -xf "$filebottarball" -C ./filebot
@@ -45,10 +46,12 @@ function depchecker {
 
     local deplist="youtube-dl"
 
+    echo -e "$INFO Checking dependencies..."
+
     for element in $deplist
         do
 
-            echo "$element is required by mp3downloader. Searching..."
+            #echo "$element is required by mp3downloader. Searching..."
 
             if ! whereis $element > /dev/null; then
                 # Really make sure they're serious
