@@ -21,7 +21,7 @@
 #    You can find few examples in the README.md
 # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-VERSION="1.2.0(BETA)"
+VERSION="V1.0.0"
 
 # add some color to message
 readonly ERR="\033[31m[ERROR]\e[0m"
