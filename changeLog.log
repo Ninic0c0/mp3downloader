@@ -3,7 +3,16 @@
 ===============================================================================================================
 Date:       Release:    Changes:
 ---------------------------------------------------------------------------------------------------------------
-04.05.2017  Beta(1.00)
+05.05.2017  Beta(1.2.0)
+                        NEW FEATURES:
+                         - None.
+
+                        UPDATES:
+                         - check if URL is a Youtube Mix.
+
+                        BUGS FIXED:
+                         - None.
+04.05.2017  Beta(1.0.0)
                         NEW FEATURES:
                          - option -r to rename automatcly files added.
                            --> Need to be tested more.
@@ -13,7 +22,7 @@ Date:       Release:    Changes:
 
                         BUGS FIXED:
                          - None.
-03.05.2017  Beta(1.00)
+03.05.2017  Beta(1.0.0)
                         NEW FEATURES:
                          - Download all mp3 from Youtube Playlist.
                          - Download mp3 direct from string.
