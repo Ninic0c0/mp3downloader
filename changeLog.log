@@ -3,6 +3,16 @@
 ===============================================================================================================
 Date:       Release:    Changes:
 ---------------------------------------------------------------------------------------------------------------
+04.05.2017  Beta(1.00)
+                        NEW FEATURES:
+                         - option -r to rename automatcly files added.
+                           --> Need to be tested more.
+
+                        UPDATES:
+                         - check if youtube-dl is installed on the host.
+
+                        BUGS FIXED:
+                         - None.
 03.05.2017  Beta(1.00)
                         NEW FEATURES:
                          - Download all mp3 from Youtube Playlist.

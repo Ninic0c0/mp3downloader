@@ -6,7 +6,8 @@
  * [Download all mp3 from Youtube Playlist](#Download-all-mp3-from-Youtube-Playlist)
  * [Download mp3 from string](#Download-mp3-from-string)
  * [Download mp3 from file (string)](#Download-mp3-from-file-(string))
- * [Download mp3 from file (youtube URL)](Download-mp3-from-file-(youtube URL))
+ * [Download mp3 from file (youtube URL)](Download-mp3-from-file-(youtube-URL))
+ * [Rename Tracks with AcoustID database](Rename-Tracks-with-AcoustID-database)
 
 ### Download all mp3 from Youtube Playlist
 
@@ -32,4 +33,8 @@
 ./mp3downloader.sh -s youtube -p playlistYoutube.txt
 ```
 
+### Rename Tracks with AcoustID database
 
+```sh
+./mp3downloader.sh -r ./playlistYoutube
+```
