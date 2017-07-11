@@ -222,6 +222,10 @@ function youtube_playlist_download {
 
     local nbrtrack=$(echo "$YOUTUBEPLAYLIST" | wc -l )
 
+    #cleanning name
+
+    DOWNPATH_DIR=${DOWNPATH_DIR/\//.}
+
     echo -e "$INFO Playlist name : $DOWNPATH_DIR"
     echo "$nbrtrack track(s) will be downloaded"
 
@@ -234,7 +238,7 @@ function youtube_playlist_download {
     touch "$tmpfile"
     echo "$YOUTUBEPLAYLIST" >> "$tmpfile"
 
-    #youtube_download_from_file "$tmpfile" "$DOWNPATH_DIR"
+    youtube_download_from_file "$tmpfile" "$DOWNPATH_DIR"
 
     # Clean tmp file
     rm "$tmpfile"
