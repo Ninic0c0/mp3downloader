@@ -136,7 +136,7 @@ function youtube_download_audio {
     youtube-dl --extract-audio \
                --audio-format mp3 \
                --output "$destdir/%(title)s.%(ext)s" "$dlpath" \
-               --ignore-errors
+               --ignore-errors > /dev/null
 }
 
 ############################################################
@@ -147,7 +147,7 @@ function youtube_download_from_file {
     local filetoparse="$1"
     local destdir="$2"
 
-    # Not space allow in the directory name
+    # Not space allowed in the directory name
     destdir=$(echo "$destdir" | sed -e 's/\ /-/g')
 
     # Count how many lines are not empty in file
@@ -199,7 +199,7 @@ function youtube_playlist_download {
         # if return is empy ask
         if [ -z "$DOWNPATH_DIR" ]; then
             echo -e "$WARN Playlist not found!"
-            read -r -p "PLease enter a name for you playlist and press [ENTER]: " DOWNPATH_DIR
+            read -r -p "PLease enter a name for your playlist and press [ENTER]: " DOWNPATH_DIR
             if [ -z "$DOWNPATH_DIR" ]; then
                 echo "Empy entry! Well done! Playlist will be Unknown_PLaylist"
                 DOWNPATH_DIR="$default_playlist_name"
@@ -333,11 +333,13 @@ while getopts "s:p:u:i:r:vh" opt; do
     p)
         FILESOURCEPATH=$OPTARG
         echo -e "$INFO Loading tracks from: $FILESOURCEPATH"
-        # Get file name
-        DOWNPATH_DIR=$(basename "$FILESOURCEPATH")
-        # Remove extention to create a folder with the same name
-        DOWNPATH_DIR="${DOWNPATH_DIR%.*}"
-        echo -e "$INFO Download directory will be: $DOWNPATH_DIR"
+        read -r -p "PLease enter a name for your playlist and press [ENTER]: " DOWNPATH_DIR
+            if [ -z "$DOWNPATH_DIR" ]; then
+                echo "Empy entry! Well done! Playlist will be Unknown_PLaylist"
+                DOWNPATH_DIR="Unknown_PLaylist"
+            else
+                echo -e "$INFO Playlist name will be : $DOWNPATH_DIR"
+            fi
         ;;
     u)
         YOUTUBEURL=$OPTARG

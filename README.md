@@ -3,40 +3,24 @@
 
 ### Table of contents
 
- * [Download all mp3 from Youtube Playlist](#Download-all-mp3-from-Youtube-Playlist)
- * [Download mp3 from string](#Download-mp3-from-string)
- * [Download mp3 from file (string)](#Download-mp3-from-file-(string))
- * [Download mp3 from file (youtube URL)](Download-mp3-from-file-(youtube-URL))
- * [Rename Tracks with AcoustID database](Rename-Tracks-with-AcoustID-database)
+ * [Download mp3 from direct input](#Download-mp3-from-direct-input)
+ * [Download mp3 from file ](#Download-mp3-from-file)
 
-### Download all mp3 from Youtube Playlist
+### Download mp3 from direct input
 
 ```sh
-./mp3downloader.sh -s playlist -u "https://www.youtube.com/playlist?list=<ID>"
+./mp3downloader.sh -d "https://www.youtube.com/watch?v=<ID>"
+./mp3downloader.sh -d "https://www.youtube.com/watch?v=<ID>&index=1&list=<ID>"
+./mp3downloader.sh -d "Les blagues de Toto"
 ```
 
-### Download mp3 from string
+### Download mp3 from file
 
 ```sh
-./mp3downloader.sh -s direct balgue de toto
+./mp3downloader.sh -f tracklist.txt
 ```
 
-### Download mp3 from file (string)
 
-```sh
-./mp3downloader.sh -s tracklist -p playlistTrack.txt
-```
-
-### Download mp3 from file (youtube URL)
-
-```sh
-./mp3downloader.sh -s youtube -p playlistYoutube.txt
-```
-
-### Rename Tracks with AcoustID database
-
-```sh
-./mp3downloader.sh -r ./playlistYoutube
 ```
 
 ### Contributing
