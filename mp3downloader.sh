@@ -3,7 +3,7 @@
 # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 #  - Pn!nkSn@ke - mp3 Downloader
 # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-# [NS] - [05/05/2017] - [1.2.0this scrip(BETA)]
+# [NS] - [05/05/2017] - [2.0 (BETA)]
 # -----------------------------------------------------------------------
 # DESCRIPTION
 #    This program dump mp3 from youtube playlist or tracklist.
@@ -20,116 +20,53 @@
 # EXAMPLES
 #    You can find few examples in the README.md
 # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+VERSION="2.1"
 
-VERSION="V1.0.0"
+TRACKPATTERN="watch?v="
+PLAYLISTPATTERN="playlist?list="
 
-# add some color to message
-readonly ERR="\033[31m[ERROR]\e[0m"
-readonly WARN="\033[33m[WARN]\e[0m"
-readonly INFO="\033[32m[INFO]\e[0m"
+DOWNPATH_DIR="$PWD"
 
-############################################################
-##################### Install Java JRE 8 ###################
-############################################################
-function java_down_and_install {
-
-    sudo add-apt-repository ppa:webupd8team/java -y && \
-    sudo apt-get update && \
-    sudo apt-get install oracle-java8-installer && \
-    sudo apt-get install oracle-java8-set-default
+prompt()
+{
+    read -r -p "$1 [y/N] " response < /dev/tty
+    if [[ $response =~ ^(yes|y|Y)$ ]]; then
+        true
+    else
+        false
+    fi
 }
 
-############################################################
-############## Download filebot 4.7.9 Portable #############
-############################################################
-function filebot_download_portable {
+# printout fucntions
+success() { echo -e "$(tput setaf 2)$1$(tput sgr0)";}
+inform()  { echo -e "$(tput setaf 6)$1$(tput sgr0)";}
+warning() { echo -e "$(tput setaf 1)$1$(tput sgr0)";}
+newline() { echo "";}
 
-    local destdir="${PWD}"
-    local filebottarball="Filebot.tar.xz"
-    local filebotversion="4.7.9"
-
-    echo -e "$INFO Downloading filebot..."
-
-    wget -O "$destdir/$filebottarball" \
-    "https://kent.dl.sourceforge.net/project/filebot/filebot/FileBot_$filebotversion/FileBot_$filebotversion-portable.tar.xz"
-
-    echo -e "$INFO Untar..."
-    tar -xf "$filebottarball" -C ./filebot
-
-    echo -e "$INFO Installing libchromaprint-tools"
-    sudo apt install libchromaprint-tools
-}
-
-############################################################
 ######## Check dependencies in ask for installation ########
-############################################################
-function depchecker {
+depchecker()
+{
+    local deplist="youtube-dl putty"
 
-    local deplist="youtube-dl"
-
-    echo -e "$INFO Checking dependencies..."
-
+    inform "Checking dependencies..."
     for element in $deplist
-        do
-
-            #echo "$element is required by mp3downloader. Searching..."
-
-            if ! whereis $element > /dev/null; then
-                # Really make sure they're serious
-                read -p "Do you want to install $element? " -n 1 -r
-                echo    # (optional) move to a new line
-                if [[ $REPLY =~ ^[Yy]$ ]]
-                then
-                    sudo apt install $element
-                else
-                    echo "Skipping $element installation!"
-                fi
+    do
+        if ! $(whereis -b $element | grep /usr/bin)> /dev/null; then
+            # Really make sure they're serious
+            if prompt "Do you want to install $element?"; then
+                sudo apt install $"element"
             else
-                echo -e "$INFO $element is already installed on the system"
+                warning "Skipping $element installation."
             fi
-        done
+        else
+            success "$element is already installed on the system."
+        fi
+    done
 }
 
-############################################################
-############# Ask if renaming is needed or not #############
-############################################################
-function ask_for_renaming {
-
-    local folder="$1"
-
-    read -p "Do you want to rename tracks inside $folder? " -n 1 -r
-    echo    # (optional) move to a new line
-    if [[ $REPLY =~ ^[Yy]$ ]]
-    then
-        filebot_rename_tracks "$folder"
-    fi
-}
-
-############################################################
-######### Rename tracks  #########
-###########################################################
-function filebot_rename_tracks {
-
-    local renamedir="$1"
-
-    local filebotscript="./filebot/filebot.sh"
-
-    if [ ! -f "$filebotscript" ]; then
-        echo -e "$ERR Filebot Script not found!"
-        echo -e "$ERR Please launch ./mp3downloader.sh -i filebot"
-        exit 4
-    fi
-
-    echo -e "$INFO renaming tracks in folder: $renamedir"
-    ./filebot/filebot.sh -rename "$renamedir" --db AcoustID
-
-}
-
-############################################################
 ######### Extract and store audio from youtube url #########
-############################################################
-function youtube_download_audio {
-
+dl_track_from_url()
+{
     local destdir="$1"
     local dlpath="$2"
 
@@ -139,10 +76,79 @@ function youtube_download_audio {
                --ignore-errors > /dev/null
 }
 
-############################################################
+######### Download mp3 from string #########
+dl_from_string()
+{
+    # Get video title
+    local title=$(echo "$@"|sed -e 's/\ /+/g')
+
+    # Check if stdin is not enmpty
+    if [ -z "$title" ]; then echo -e "nothing to look for"; exit 1; fi
+
+    # Get Youtube URL (thx to Guillaume :P )
+    local urltodonwload=$(lynx -dump \
+                    https://www.youtube.com/results?search_query="$title" | \
+                    grep "watch?" | \
+                    head -n1      | \
+                    awk '{print $2}' \
+                    )
+
+    # Sometime with have [num.] at the beginning of the URL...
+    urltodonwload=$(echo "$urltodonwload" | sed 's/\[.[1234567890]]*//g')
+
+    dl_track_from_url "$PWD/$DOWNPATH_DIR" "$urltodonwload"
+}
+
+####### Download all tracks from a Youtube Playlist ########
+dl_from_playlist()
+{
+    local destdir="$1"
+    local inputurl="$2"
+
+    local youtubeplaylist=$(lynx -dump "$inputurl" | \
+                      sed -n '/Hidden links/,$p' | \
+                      tail -n +4                 | \
+                      head -n -1                 | \
+                      sed 's/[[:digit:]]\+\.//g' | \
+                      sed 's/\&index.*//'        | \
+                      sed 's/\&list.*//'           \
+                      )
+
+    local nbrtrack=$(echo "$youtubeplaylist" | wc -l )
+
+    echo -e "$INFO Playlist name : $DOWNPATH_DIR"
+    echo "$nbrtrack track(s) will be downloaded"
+
+    local tmpfile="$DOWNPATH_DIR"".tmp"
+
+    # Replcae all spaces with -
+    tmpfile=$(echo "$tmpfile" | sed -e 's/\ /-/g')
+    #echo -e "$WARN tmp: $tmpfile"
+
+    touch "$tmpfile"
+    echo "$youtubeplaylist" >> "$tmpfile"
+
+    dl_from_urlfile "$tmpfile" "$DOWNPATH_DIR"
+
+    # Clean tmp file
+    rm "$tmpfile"
+}
+
+######### get a folder name #########
+ask_for_destination_folder()
+{
+    read -r -p "PLease enter a name for your playlist and press [ENTER]: " DOWNPATH_DIR
+    if [ -z "$DOWNPATH_DIR" ]; then
+        echo "Empy entry! Well done! Playlist name will be Unknown_PLaylist"
+        DOWNPATH_DIR="Unknown_PLaylist"
+        else
+        inform "Playlist name will be : $DOWNPATH_DIR"
+    fi
+}
+
 ######## Parse a file to dowload audio from Youtube ########
-############################################################
-function youtube_download_from_file {
+dl_from_urlfile()
+{
 
     local filetoparse="$1"
     local destdir="$2"
@@ -165,7 +171,7 @@ function youtube_download_from_file {
             echo "****************************************"
             echo -e "Downloading trak [ $count / $nbrlines]"
 
-            youtube_download_audio "$PWD/$destdir" "$line"
+            dl_track_from_url "$PWD/$destdir" "$line"
 
         else
             echo -e "$WARN empty line founded in the source file please take care the next time."
@@ -173,240 +179,106 @@ function youtube_download_from_file {
     done < "$filetoparse"
 }
 
-############################################################
-####### Download all tracks from a Youtube Playlist ########
-############################################################
-function youtube_playlist_download {
 
-    local default_playlist_name="Unknown_PLaylist"
-    DOWNPATH_DIR=""
-
-    DOWNPATH_DIR=$(lynx -dump "$YOUTUBEURL" | \
-                   grep "Play all*$" -A 2   | \
-                   tail -n 1                  \
-                   )
-
-    # check Mix ?
-    if [ -z "$DOWNPATH_DIR" ]; then
-        echo -e "It's maybe a Youtube Mix. Let me check... ";
-
-        DOWNPATH_DIR=$(lynx -dump "$YOUTUBEURL" | \
-                       grep "Sign in to YouTube" -A 4 | \
-                       tail -n 1 | \
-                       sed 's/\[.[1234567890]]*//g' \
-                       )
-
-        # if return is empy ask
-        if [ -z "$DOWNPATH_DIR" ]; then
-            echo -e "$WARN Playlist not found!"
-            read -r -p "PLease enter a name for your playlist and press [ENTER]: " DOWNPATH_DIR
-            if [ -z "$DOWNPATH_DIR" ]; then
-                echo "Empy entry! Well done! Playlist will be Unknown_PLaylist"
-                DOWNPATH_DIR="$default_playlist_name"
-            else
-                echo -e "$INFO Playlist name will be : $DOWNPATH_DIR"
-            fi
+#### Check if arg is youtube playlist or track ####
+#### return 2 trak
+####        3 playlist
+####        1 error
+is_yt_url()
+{
+    if [[ "${@}" =~ ^https://www.youtube.com.* || "${@}" =~ ^http://www.youtube.com.* ]]; then
+        if [[ "${@}" == *"$TRACKPATTERN"* ]]; then
+            return 2
+        elif [[ "${@}" == *"$PLAYLISTPATTERN"*  ]]; then
+            return 3
+        else
+            warning "Seems to be a strange Youtube URL."
+            return 1
         fi
     fi
-
-    DOWNPATH_DIR=$(echo "$DOWNPATH_DIR" | sed -e 's/\ /-/g')
-
-    YOUTUBEPLAYLIST=$(lynx -dump "$YOUTUBEURL" | \
-                      sed -n '/Hidden links/,$p' | \
-                      tail -n +4                 | \
-                      head -n -1                 | \
-                      sed 's/[[:digit:]]\+\.//g' | \
-                      sed 's/\&index.*//'        | \
-                      sed 's/\&list.*//'           \
-                      )
-
-    local nbrtrack=$(echo "$YOUTUBEPLAYLIST" | wc -l )
-
-    #cleanning name
-
-    DOWNPATH_DIR=${DOWNPATH_DIR/\//.}
-
-    echo -e "$INFO Playlist name : $DOWNPATH_DIR"
-    echo "$nbrtrack track(s) will be downloaded"
-
-    local tmpfile="$DOWNPATH_DIR"".tmp"
-
-    # Replcae all spaces with -
-    tmpfile=$(echo "$tmpfile" | sed -e 's/\ /-/g')
-    #echo -e "$WARN tmp: $tmpfile"
-
-    touch "$tmpfile"
-    echo "$YOUTUBEPLAYLIST" >> "$tmpfile"
-
-    youtube_download_from_file "$tmpfile" "$DOWNPATH_DIR"
-
-    # Clean tmp file
-    rm "$tmpfile"
 }
 
-###########################################################
-####### Parse Playlist file and download all files ########
-###########################################################
-function track_playlist_download {
+#### Parse inpute file ad download items ####
+check_and_dl_input_file()
+{
+    local filepath="$1"
+    local nbrtrack=$(wc "$filepath" | awk '{print $1}' )
 
-    local inputfile="$1"
-
-    # Create outuput directory
-    mkdir -p "$DOWNPATH_DIR"
-
-    # How many tracks
-    local numoflines=$(wc -l < "$inputfile")
-    echo -e "$INFO $numoflines tracks will be downloaded!"
-
+    inform "Checking input file $filepath"
     # Read playlist file line by line
     while read line
     do
-       count=$((count+1))
-       echo "****************************************"
-       echo -e "Downloading trak [ $count / $numoflines]"
-       track_playlist_direct "$line"
-    done < "$FILESOURCEPATH"
+        if [ "$line" != "" ]; then
+
+            count=$((count+1))
+            echo "****************************************"
+            inform "Downloading Item [ $count / $nbrtrack]"
+
+            smart_download "$line"
+        else
+            inform "Empty line founded in the source file please take care the next time."
+        fi
+    done < "$filepath"
+
 }
 
-###########################################################
-############### Download mp3 from string ##################
-###########################################################
-function track_playlist_direct { # download mp3 from string
+#### check if the arg is Youtube url or string ####
+smart_download()
+{
+    local input="$@"
 
-    # Get video title
-    local title=$(echo "$@"|sed -e 's/\ /+/g')
-
-    # Check if stdin is not enmpty
-    if [ -z "$title" ]; then echo -e "nothing to look for"; exit 1; fi
-
-    # Get Youtube URL (thx to Guillaume :P )
-    local urltodonwload=$(lynx -dump \
-                    https://www.youtube.com/results?search_query="$title" | \
-                    grep "watch?" | \
-                    head -n1      | \
-                    awk '{print $2}' \
-                    )
-
-    # Sometime with have [num.] at the beginning of the URL...
-    urltodonwload=$(echo "$urltodonwload" | sed 's/\[.[1234567890]]*//g')
-
-    youtube_download_audio "$PWD/$DOWNPATH_DIR" "$urltodonwload"
+    is_yt_url "$input"
+    rc="$?"
+    if [[ "2" = "$rc" ]]; then
+        success "Input seems to ba an Youtube track."
+        dl_track_from_url "$DOWNPATH_DIR" "$@"
+    elif [[ "3" = "$rc"  ]]; then
+        success "Input seems to ba an Youtube playlist."
+        dl_from_playlist "$DOWNPATH_DIR" "$@"
+    elif [[ "1" = "$rc"  ]]; then
+        warning "Seems to be a strange youtube URL"
+        warning "Please check input and try again."
+        exit 2
+    else # assume it's a string input
+        success "Assuming input is a simple string."
+        dl_from_string "$input"
+    fi
 }
 
 #**********************************************************
 #********************** Entry point ***********************
 #**********************************************************
 clear;
-echo -e "*** Welecome to mp3downloader $VERSION ***\n"
-
-depchecker
+echo -e "*** Welecome to mp3downloader $VERSION ***"
 
 # Extract args
-while getopts "s:p:u:i:r:vh" opt; do
+while getopts "d:f:vh" opt; do
   case $opt in
-    s)
-        SOURCENAME=$OPTARG
-
-        case "$SOURCENAME" in
-        "youtube" ) # youtube playlist aka all youtube urls in one file
-            echo -e "$INFO youtube selected!"
-        ;;
-        "playlist" ) # youtube playlist aka playlist URL
-            echo -e "$INFO youtube playlist selected!"
-        ;;
-        "tracklist" ) # track list aka track name in file
-            echo -e "$INFO tracklist selected!"
-        ;;
-        "direct" ) # direct download from arg string
-            echo -e "$INFO direct download selected!"
-            DOWNPATH_DIR="./direct"
-            echo -e "Output directory will be: $DOWNPATH_DIR"
-            track_playlist_direct "${@:3}" # pass arg from the 3rd (e.g without -s direct)
-            exit 0
-        ;;
-        *)
-            echo -e "$ERR Source didn't matched!"
-            exit 2
-        ;;
-        esac
-        ;;
-    p)
-        FILESOURCEPATH=$OPTARG
-        echo -e "$INFO Loading tracks from: $FILESOURCEPATH"
-        read -r -p "PLease enter a name for your playlist and press [ENTER]: " DOWNPATH_DIR
-            if [ -z "$DOWNPATH_DIR" ]; then
-                echo "Empy entry! Well done! Playlist will be Unknown_PLaylist"
-                DOWNPATH_DIR="Unknown_PLaylist"
-            else
-                echo -e "$INFO Playlist name will be : $DOWNPATH_DIR"
-            fi
-        ;;
-    u)
-        YOUTUBEURL=$OPTARG
-        echo -e "$INFO Loading tracks from: $YOUTUBEURL"
-        ;;
-    i)
-        ASKINSTALL=$OPTARG
-        case "$ASKINSTALL" in
-        "java" ) # youtube playlist aka all youtube urls in one file
-            java_down_and_install
-        ;;
-        "filebot" ) # youtube playlist aka playlist URL
-            filebot_download_portable
-        ;;
-        *)
-            echo -e "$ERR Package didn't matched!"
-            exit 2
-        ;;
-        esac
-        ;;
-    r)
-        FOLDERTORENAME=$OPTARG
-        filebot_rename_tracks "$FOLDERTORENAME"
-        ;;
+    d) # direct download
+        ask_for_destination_folder
+        # check if it's a youtube url or not
+        smart_download "${@:2}"
+    ;;
+    f) # download from file filename
+        ask_for_destination_folder
+        check_and_dl_input_file "${@:2}"
+    ;;
     h)
         echo "This program dump mp3 from youtube playlist or tracklist."
-        echo -e "\t -s : source name [ youtube | tracklist | direct ]"
-        echo -e "\t -p : source path [ path to playlist ]"
-        echo -e "\t -u : url to youtube playlist"
-        echo
-        echo -e "\t -i : install tools [ java | filebot ]"
-        echo -e "\t -r rename files with AcoustID database"
+        echo -e "\t -d : Direct download from string input"
+        echo -e "\t -f : Download from file"
         echo -e "\nYou can find few examples in the README.md"
         exit 0
-        ;;
+    ;;
     \?)
-      echo -e "$ERR Invalid option: -$OPTARG"
+      warning "Invalid option: -$OPTARG"
       exit 1
       ;;
     :)
-      echo -e "$ERR Option -$OPTARG requires an argument."
+      warning "Option -$OPTARG requires an argument."
       exit 1
       ;;
-
   esac
 done
-
-# Processing
-case "$SOURCENAME" in
-
-    "youtube")
-        echo -e "$INFO Downloading from Youtube..."
-        youtube_download_from_file "$FILESOURCEPATH" "$DOWNPATH_DIR"
-    ;;
-    "playlist")
-        echo -e "$INFO Downloading from Youtube playlist URL..."
-        youtube_playlist_download
-        ask_for_renaming "$DOWNPATH_DIR"
-    ;;
-    "tracklist")
-        echo -e "$INFO Downloading from Tracklist..."
-        track_playlist_download "$FILESOURCEPATH"
-    ;;
-    *)
-        echo "Commande will be not processed"
-        exit 2
-    ;;
-esac
 
 exit 0

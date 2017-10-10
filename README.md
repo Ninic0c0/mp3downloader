@@ -5,6 +5,7 @@
 
  * [Download mp3 from direct input](#Download-mp3-from-direct-input)
  * [Download mp3 from file ](#Download-mp3-from-file)
+ * [Example file ](#Example-file)
 
 ### Download mp3 from direct input
 
@@ -20,7 +21,13 @@
 ./mp3downloader.sh -f tracklist.txt
 ```
 
-
+### Example file
+```sh
+[pinksnake@ubuntu:mp3downloader] cat tracklist.txt
+https://www.youtube.com/watch?v=yGZuJnkMBso
+La tribu de Dana
+Les balgues de toto
+https://www.youtube.com/watch?v=yGZuJnkMBso
 ```
 
 ### Contributing
